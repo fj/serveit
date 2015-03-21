@@ -42,6 +42,8 @@ class ServeIt
   end
 
   class Server
+    INDEX_PATTERN = %r{^index\.(.)+$}
+
     def initialize(serve_dir, command)
       @mutex = Mutex.new
       @serve_dir = serve_dir
@@ -94,16 +96,9 @@ class ServeIt
     end
 
     def respond_to_dir(res, rel_path, local_abs_path)
-      res.content_type = "text/html"
-      res.body = (
-        "<p><h3>Listing for /#{rel_path}</h3></p>\n" +
-        Dir.entries(local_abs_path).select do |child|
-          child != "."
-        end.map do |child|
-          full_child_path_on_server = File.join("/", rel_path, child)
-          %{<a href="#{full_child_path_on_server}">#{child}</a><br>}
-        end.join("\n")
-      )
+      index_file = Dir.entries(local_abs_path).detect { |c| INDEX_PATTERN =~ c }
+
+      respond_to_file(res, File.join(local_abs_path, index_file))
     end
 
     def respond_to_file(res, local_abs_path)
